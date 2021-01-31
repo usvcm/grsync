@@ -1,18 +1,22 @@
 package grsync
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Rsync is wrapper under rsync
 type Rsync struct {
 	Source      string
 	Destination string
+	ctx         context.Context
+	cancel      context.CancelFunc
 
 	cmd *exec.Cmd
 }
@@ -209,6 +213,8 @@ func (r Rsync) Run() error {
 		}
 	}
 
+	defer r.cancel()
+
 	if err := r.cmd.Start(); err != nil {
 		return err
 	}
@@ -217,12 +223,15 @@ func (r Rsync) Run() error {
 }
 
 // NewRsync returns task with described options
-func NewRsync(source, destination string, options RsyncOptions) *Rsync {
+func NewRsync(source, destination string, options RsyncOptions, timeLimit time.Duration) *Rsync {
 	arguments := append(getArguments(options), source, destination)
+	ctx, cancel := context.WithTimeout(context.Background(), timeLimit)
 	return &Rsync{
 		Source:      source,
 		Destination: destination,
-		cmd:         exec.Command("rsync", arguments...),
+		cmd:         exec.CommandContext(ctx, "rsync", arguments...),
+		ctx:         ctx,
+		cancel:      cancel,
 	}
 }
 

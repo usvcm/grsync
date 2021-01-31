@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Task is high-level API under rsync
@@ -72,7 +73,7 @@ func NewTask(source, destination string, rsyncOptions RsyncOptions) *Task {
 	rsyncOptions.Archive = true
 
 	return &Task{
-		rsync: NewRsync(source, destination, rsyncOptions),
+		rsync: NewRsync(source, destination, rsyncOptions, time.Hour*1),
 		state: &State{},
 		log:   &Log{},
 	}
