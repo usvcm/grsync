@@ -1,7 +1,7 @@
 package grsync
 
 import (
-	"context"
+//	"context"
 	"fmt"
 	"io"
 	"os"
@@ -9,14 +9,16 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"syscall"
 )
 
 // Rsync is wrapper under rsync
 type Rsync struct {
 	Source      string
 	Destination string
-	ctx         context.Context
-	cancel      context.CancelFunc
+	//ctx         context.Context
+	//cancel      context.CancelFunc
+	td time.Duration
 
 	cmd *exec.Cmd
 }
@@ -213,25 +215,36 @@ func (r Rsync) Run() error {
 		}
 	}
 
-	defer r.cancel()
+	//defer r.cancel()
+	t := time.AfterFunc(r.td, func() {
+	  syscall.Kill(-r.cmd.Process.Pid, syscall.SIGKILL)
+        })
+	r.cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	if err := r.cmd.Start(); err != nil {
 		return err
 	}
 
-	return r.cmd.Wait()
+	err := r.cmd.Wait()
+
+	t.Stop();
+	
+
+	return err
 }
 
 // NewRsync returns task with described options
 func NewRsync(source, destination string, options RsyncOptions, timeLimit time.Duration) *Rsync {
 	arguments := append(getArguments(options), source, destination)
-	ctx, cancel := context.WithTimeout(context.Background(), timeLimit)
+	//ctx, cancel := context.WithTimeout(context.Background(), timeLimit)
 	return &Rsync{
 		Source:      source,
 		Destination: destination,
-		cmd:         exec.CommandContext(ctx, "rsync", arguments...),
-		ctx:         ctx,
-		cancel:      cancel,
+		cmd: exec.Command("rsync", arguments...),
+		td: timeLimit,
+		//cmd:         exec.CommandContext(ctx, "rsync", arguments...),
+		//ctx:         ctx,
+		//cancel:      cancel,
 	}
 }
 
