@@ -65,7 +65,7 @@ func (t *Task) Run() error {
 }
 
 // NewTask returns new rsync task
-func NewTask(source, destination string, rsyncOptions RsyncOptions) *Task {
+func NewTask(source, destination string, rsyncOptions RsyncOptions, td time.Duration) *Task {
 	// Force set required options
 	rsyncOptions.HumanReadable = true
 	rsyncOptions.Partial = true
@@ -73,7 +73,7 @@ func NewTask(source, destination string, rsyncOptions RsyncOptions) *Task {
 	rsyncOptions.Archive = true
 
 	return &Task{
-		rsync: NewRsync(source, destination, rsyncOptions, time.Hour*1),
+		rsync: NewRsync(source, destination, rsyncOptions, td),
 		state: &State{},
 		log:   &Log{},
 	}
